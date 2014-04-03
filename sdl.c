@@ -49,35 +49,46 @@ int close_joysticks()
 	return 0;
 }
 
+#define JOYAXIS_THRESHOLD_FACTOR 0.1
+#define JOYAXIS_THRESHOLD (JOYAXIS_THRESHOLD_FACTOR * 32700) /* range: -32768 to 32767 */
+
+int event_joyaxis(SDL_JoyAxisEvent *jaxis)
+{
+	if (!jaxis)
+		return -1;
+	if ((jaxis->value < -JOYAXIS_THRESHOLD) || (jaxis->value > JOYAXIS_THRESHOLD))
+		printf("%u:  joystick=%d,  axis=%d,"
+				"  padding1=%d,  padding2=%d,"
+				"  padding3=%d,  padding4=%d,"
+				"  value=%d\n",
+				jaxis->timestamp, jaxis->which,
+				jaxis->axis, jaxis->padding1,
+				jaxis->padding2, jaxis->padding3,
+				jaxis->padding4, jaxis->value);
+	return 0;
+}
+
 int listen_events()
 {
 	SDL_Event event;
 	while (1) {
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
-				case SDL_QUIT: {
-					printf("exit\n");
-					return 0;
-				} break;
-				case SDL_JOYAXISMOTION: {
-					printf("%u:  joystick=%d,  axis=%d,"
-							"  padding1=%d,  padding2=%d,"
-							"  padding3=%d,  padding4=%d,"
-							"  value=%d\n",
-							event.jaxis.timestamp, event.jaxis.which,
-							event.jaxis.axis, event.jaxis.padding1,
-							event.jaxis.padding2, event.jaxis.padding3,
-							event.jaxis.padding4, event.jaxis.value);
-				} break;
-				case SDL_JOYBALLMOTION:
-				case SDL_JOYHATMOTION:
-				case SDL_JOYBUTTONDOWN:
-				case SDL_JOYBUTTONUP:
-				case SDL_JOYDEVICEADDED:
-				case SDL_JOYDEVICEREMOVED:
-				default: {
-					printf("type=%d\n", event.type);
-				} break;
+			case SDL_QUIT:
+				return 0;
+			break;
+			case SDL_JOYAXISMOTION:
+				event_joyaxis(&event.jaxis);
+			break;
+			case SDL_JOYBALLMOTION:
+			case SDL_JOYHATMOTION:
+			case SDL_JOYBUTTONDOWN:
+			case SDL_JOYBUTTONUP:
+			case SDL_JOYDEVICEADDED:
+			case SDL_JOYDEVICEREMOVED:
+			default:
+				printf("type=%d\n", event.type);
+			break;
 			}
 			usleep(2000);
 		}
